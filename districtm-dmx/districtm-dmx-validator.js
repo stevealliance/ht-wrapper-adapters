@@ -1,15 +1,9 @@
 /**
- * @author:    DistrictM
- * @license:   UNLICENSED
- *
- * @copyright: Copyright (c) 2017 by Index Exchange. All rights reserved.
- *
- * The information contained within this document is confidential, copyrighted
- * and or a trade secret. No part of this document may be reproduced or
- * distributed in any form or by any means, in whole or in part, without the
- * prior written permission of Index Exchange.
+ * @author:             Districtm
+ * @license:            UNLICENSED
+ * @technical-contact:  Steve Alliance <steve@districtm.net>
+ * @business-contact:   Kate Dye <kate@districtm.net>
  */
-
 
 /**
  * This file contains the necessary validation for the partner configuration.
