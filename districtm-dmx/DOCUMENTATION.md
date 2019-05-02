@@ -1,4 +1,4 @@
-# bRealTime
+# districtmDmx
 ## General Compatibility
 |Feature|  |
 |---|---|
@@ -26,13 +26,13 @@
 ## Adapter Information
 | Info | |
 |---|---|
-| Partner Id | DistrictmDMX |
-| Ad Server Responds in (Cents, Dollars, etc) | Dollars|
-| Bid Type (Gross / Net) | Net |
+| Partner Id | DistrictmDmxHtb |
+| Ad Server Responds in (Cents, Dollars, etc) | |
+| Bid Type (Gross / Net) | |
 | GAM Key (Open Market) | |
 | GAM Key (Private Market) | |
 | Ad Server URLs | |
-| Slot Mapping Sytle (Size / Multiple Sizes / Slot) | |
+| Slot Mapping Style (Size / Multiple Sizes / Slot) | |
 | Request Architecture (MRA / SRA) | |
  
 ## Currencies Supported

@@ -1,20 +1,17 @@
 'use strict';
 
 function getPartnerId() {
-    console.log(27, 'getPartnerId')
     return 'DistrictmDmxHtb';
 }
 
 function getStatsId() {
-    console.log(26, 'getStatsId')
-    return 'DMX';
+    return 'PXYZ';
 }
 
 function getBidRequestRegex() {
-    console.log('url', 1000)
     return {
         method: 'POST',
-        urlRegex: /.*dmx\.districtm\.io\/b\/v1.*/
+        urlRegex: /.*ads\.playground\.xyz\/host-config\/prebid.*/
     };
 }
 
@@ -27,17 +24,14 @@ function getArchitecture() {
 }
 
 function getConfig() {
-    console.log(20, 'internal')
     return {
         xSlots: {
             1: {
-                dmxid: 123,
-                memberId: 123,
+                placementId: 123,
                 sizes: [[300, 250]]
             },
             2: {
-                dmxid: 123,
-                memberId: 123,
+                placementId: 123,
                 sizes: [[320, 50]]
             }
         }
@@ -45,15 +39,13 @@ function getConfig() {
 }
 
 function validateBidRequest(request) {
-    console.log(22, request);
     var r = JSON.parse(request.body);
 
     expect(r.id).toBeDefined();
 
-    expect(r.site.page).toBeUndefined();
-    expect(r.site.name).toBeUndefined();
-    expect(r.site.publisher).toBeDefined();
-    expect(r.site.domain).toBeUndefined();
+    expect(r.site.page).toBeDefined();
+    expect(r.site.name).toBeDefined();
+    expect(r.site.domain).toBeDefined();
 
     expect(r.imp.length).toBe(2);
 
@@ -124,7 +116,7 @@ function getValidResponse(request, creative) {
                         },
                         id: 567841330,
                         impid: 'htSlotDesktopAId',
-                        price: 2.15
+                        price: '2'
                     },
                     {
                         adid: '1487603',
@@ -145,7 +137,7 @@ function getValidResponse(request, creative) {
                         },
                         id: 567841330,
                         impid: 'htSlotDesktopAId',
-                        price: 3.25
+                        price: '1'
                     }
                 ],
                 seat: '2439'
@@ -197,16 +189,14 @@ function getPassResponse(request) {
 }
 
 function validateTargeting(targetingMap) {
-    console.log(25, targetingMap)
     expect(targetingMap).toEqual(jasmine.objectContaining({
-        ix_dmx_cpm: jasmine.arrayContaining(['300x250_215', '320x50_325']),
-        ix_dmx_id: jasmine.arrayContaining([jasmine.any(String)])
+        ix_pxyz_cpm: jasmine.arrayContaining(['300x250_200', '320x50_100']),
+        ix_pxyz_id: jasmine.arrayContaining([jasmine.any(String)])
     }));
 }
 
 function validatePixelRequests(pixelRequests) {
-    console.log(11, 'validatePixelRequests', pixelRequests )
-    expect(pixelRequests[0].toString()).toMatch(/.*cdn.districtm.io\/ids\/index\.html*/);
+    expect(pixelRequests[0].toString()).toMatch(/.*ib\.adnxs\.com\/getuidnb.*/);
 }
 
 module.exports = {

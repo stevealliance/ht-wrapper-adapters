@@ -1,10 +1,3 @@
-/**
- * @author:             Districtm
- * @license:            UNLICENSED
- * @technical-contact:  Steve Alliance <steve@districtm.net>
- * @business-contact:   Kate Dye <kate@districtm.net>
- */
-
 'use strict';
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -20,15 +13,16 @@ var SpaceCamp = require('space-camp.js');
 var System = require('system.js');
 var Network = require('network.js');
 var Utilities = require('utilities.js');
-var Whoopsie = require('whoopsie.js');
 
-var EventsService;
-var RenderService;
 var ComplianceService;
+var RenderService;
 
+//? if (DEBUG) {
 var ConfigValidators = require('config-validators.js');
+var PartnerSpecificValidator = require('districtm-dmx-htb-validator.js');
 var Scribe = require('scribe.js');
-var PartnerValidation = require('districtm-dmx-htb-validator.js');
+var Whoopsie = require('whoopsie.js');
+//? }
 
 ////////////////////////////////////////////////////////////////////////////////
 // Main ////////////////////////////////////////////////////////////////////////
@@ -37,81 +31,242 @@ var PartnerValidation = require('districtm-dmx-htb-validator.js');
 /**
  * Partner module template
  *
+ * @class
  */
+function DistrictmDmxHtb(configs) {
+    /* =====================================
+     * Data
+     * ---------------------------------- */
 
-function DistrictmDmxHtb(config) {
+    /* Private
+     * ---------------------------------- */
+
+    /**
+     * Reference to the partner base class.
+     *
+     * @private {object}
+     */
     var __baseClass;
-    var __profile;
-    var __endpoint = '//dmx.districtm.io/b/v1';
-    function __renderPixel() {
-        Network.img({
-            url: decodeURIComponent('//cdn.districtm.io/ids/index.html'),
-            method: 'GET'
-        });
-    }
 
-    function __generateRequestObj(BidRequest) {
-        throw Whoopsie('SHIT AGAIN', BidRequest)
-        var requestedUrl = Browser.getProtocol() + __endpoint;
-        var id = System.generateUniqueId();
-        var gdprStatus = ComplianceService.gdpr.getConsent();
-        var gdprPrivacyEnable = ComplianceService.isPrivacyEnabled();
-        var dmxrequest = {
-            id: id,
+    /**
+     * Profile for this partner.
+     *
+     * @private {object}
+     */
+    var __profile;
+
+    /**
+     * Profile for this partner.
+     *
+     * @private {string}
+     */
+    var __endpoint = 'https://dmx.districtm.io/b/v1';
+
+    /* =====================================
+     * Functions
+     * ---------------------------------- */
+
+    /* Utilities
+     * ---------------------------------- */
+
+    /**
+     * Generates the request URL and query data to the endpoint for the xSlots
+     * in the given returnParcels.
+     *
+     * @param  {object[]} returnParcels
+     *
+     * @return {object}
+     */
+    function __generateRequestObj(returnParcels) {
+        /* =============================================================================
+         * STEP 2  | Generate Request URL
+         * -----------------------------------------------------------------------------
+         *
+         * Generate the URL to request demand from the partner endpoint using the provided
+         * returnParcels. The returnParcels is an array of objects each object containing
+         * an .xSlotRef which is a reference to the xSlot object from the partner configuration.
+         * Use this to retrieve the placements/xSlots you need to request for.
+         *
+         * If your partner is MRA, returnParcels will be an array of length one. If your
+         * partner is SRA, it will contain any number of entities. In any event, the full
+         * contents of the array should be able to fit into a single request and the
+         * return value of this function should similarly represent a single request to the
+         * endpoint.
+         *
+         * Return an object containing:
+         * queryUrl: the url for the request
+         * data: the query object containing a map of the query string paramaters
+         *
+         * callbackId:
+         *
+         * arbitrary id to match the request with the response in the callback function. If
+         * your endpoint supports passing in an arbitrary ID and returning it as part of the response
+         * please use the callbackType: Partner.CallbackTypes.ID and fill out the adResponseCallback.
+         * Also please provide this adResponseCallback to your bid request here so that the JSONP
+         * response calls it once it has completed.
+         *
+         * If your endpoint does not support passing in an ID, simply use
+         * Partner.CallbackTypes.CALLBACK_NAME and the wrapper will take care of handling request
+         * matching by generating unique callbacks for each request using the callbackId.
+         *
+         * If your endpoint is ajax only, please set the appropriate values in your profile for this,
+         * i.e. Partner.CallbackTypes.NONE and Partner.Requesttypes.AJAX. You also do not need to provide
+         * a callbackId in this case because there is no callback.
+         *
+         * The return object should look something like this:
+         * {
+         *     url: 'http://bidserver.com/api/bids' // base request url for a GET/POST request
+         *     data: { // query string object that will be attached to the base url
+         *        slots: [
+         *             {
+         *                 placementId: 54321,
+         *                 sizes: [[300, 250]]
+         *             },{
+         *                 placementId: 12345,
+         *                 sizes: [[300, 600]]
+         *             },{
+         *                 placementId: 654321,
+         *                 sizes: [[728, 90]]
+         *             }
+         *         ],
+         *         site: 'http://google.com'
+         *     },
+         *     callbackId: '_23sd2ij4i1' //unique id used for pairing requests and responses
+         * }
+         */
+
+        /* ---------------------- PUT CODE HERE ------------------------------------ */
+        var queryObj = {
+            cur: ['USD'],
             site: {
-                publisher: { id: String(BidRequest[0].xSlotRef.memberid) }
+                publisher: {
+                    id: String(returnParcels[0])
+                }
             }
         };
-        if (gdprPrivacyEnable) {
-            dmxrequest.regs = {};
-            dmxrequest.regs.ext = {};
-            dmxrequest.regs.ext.gdpr = gdprStatus.applies ? 1 : 0;
-            dmxrequest.user = {};
-            dmxrequest.user.ext = {};
-            dmxrequest.user.ext.consent = gdprStatus.consentString;
-        }
-        var tags = BidRequest.map(function (bid) {
-            bid.id = System.generateUniqueId();
-            bid.tagid = String(bid.xSlotRef.dmxid);
-            bid.secure = window.location.protocal === 'https' ? 1 : 0;
-            bid.banner = {
-                topframe: 1,
-                w: bid.xSlotRef.sizes[0][0],
-                h: bid.xSlotRef.sizes[0][1],
-                format: bid.sizes.map(function (s) {
-                    return {
-                        w: s[0],
-                        h: s[1]
-                    };
-                })
-            };
+        console.log(returnParcels)
+        var callbackId = System.generateUniqueId();
 
-            return bid;
-        });
-        dmxrequest.imp = tags;
+        /* Change this to your bidder endpoint. */
+        var baseUrl = Browser.getProtocol() + __endpoint;
+
+        /* ------------------------ Get consent information -------------------------
+         * If you want to implement GDPR consent in your adapter, use the function
+         * ComplianceService.gdpr.getConsent() which will return an object.
+         *
+         * Here is what the values in that object mean:
+         *      - applies: the boolean value indicating if the request is subject to
+         *      GDPR regulations
+         *      - consentString: the consent string developed by GDPR Consent Working
+         *      Group under the auspices of IAB Europe
+         *
+         * The return object should look something like this:
+         * {
+         *      applies: true,
+         *      consentString: "BOQ7WlgOQ7WlgABABwAAABJOACgACAAQABA"
+         * }
+         *
+         * You can also determine whether or not the publisher has enabled privacy
+         * features in their wrapper by querying ComplianceService.isPrivacyEnabled().
+         *
+         * This function will return a boolean, which indicates whether the wrapper's
+         * privacy features are on (true) or off (false). If they are off, the values
+         * returned from gdpr.getConsent() are safe defaults and no attempt has been
+         * made by the wrapper to contact a Consent Management Platform.
+         */
+        var gdprStatus = ComplianceService.gdpr.getConsent();
+        var privacyEnabled = ComplianceService.isPrivacyEnabled();
+
+        /* ---------------- Craft bid request using the above returnParcels --------- */
+
+        /* ------- Put GDPR consent code here if you are implementing GDPR ---------- */
+
+        /* -------------------------------------------------------------------------- */
 
         return {
-            url: requestedUrl,
-            networkParamOverrides: {
-                method: 'POST',
-                contentType: 'text/plain'
-            },
-            data: dmxrequest,
-            callbackId: id
+            url: baseUrl,
+            data: queryObj,
+            callbackId: callbackId
         };
     }
 
-    function __parseResponse(sessionId, adResponse, returnParcels) {
-        if (!adResponse.tags) {
-            if (__profile.enabledAnalytics.requestTime) {
-                __baseClass._emitStatsEvent(sessionId, 'hs_slot_pass', headerStatsInfo);
-            }
-            //curReturnParcel.pass = true;
+    /* =============================================================================
+     * STEP 3  | Response callback
+     * -----------------------------------------------------------------------------
+     *
+     * This generator is only necessary if the partner's endpoint has the ability
+     * to return an arbitrary ID that is sent to it. It should retrieve that ID from
+     * the response and save the response to adResponseStore keyed by that ID.
+     *
+     * If the endpoint does not have an appropriate field for this, set the profile's
+     * callback type to CallbackTypes.CALLBACK_NAME and omit this function.
+     */
+    function adResponseCallback(adResponse) {
+        /* Get callbackId from adResponse here */
+        var callbackId = 0;
+        __baseClass._adResponseStore[callbackId] = adResponse;
+    }
 
-            return;
+    /* -------------------------------------------------------------------------- */
+
+    /* Helpers
+     * ---------------------------------- */
+
+    /* =============================================================================
+     * STEP 5  | Rendering Pixel
+     * -----------------------------------------------------------------------------
+     *
+    */
+
+    /**
+     * This function will render the pixel given.
+     * @param  {string} pixelUrl Tracking pixel img url.
+     */
+    function __renderPixel(pixelUrl) {
+        if (pixelUrl) {
+            Network.img({
+                url: decodeURIComponent(pixelUrl),
+                method: 'GET'
+            });
         }
+    }
 
-        var bids = adResponse.tags;
+    /**
+     * Parses and extracts demand from adResponse according to the adapter and then attaches it
+     * to the corresponding bid's returnParcel in the correct format using targeting keys.
+     *
+     * @param {string} sessionId The sessionId, used for stats and other events.
+     *
+     * @param {any} adResponse This is the bid response as returned from the bid request, that was either
+     * passed to a JSONP callback or simply sent back via AJAX.
+     *
+     * @param {object[]} returnParcels The array of original parcels, SAME array that was passed to
+     * generateRequestObj to signal which slots need demand. In this funciton, the demand needs to be
+     * attached to each one of the objects for which the demand was originally requested for.
+     */
+    function __parseResponse(sessionId, adResponse, returnParcels) {
+        /* =============================================================================
+         * STEP 4  | Parse & store demand response
+         * -----------------------------------------------------------------------------
+         *
+         * Fill the below variables with information about the bid from the partner, using
+         * the adResponse variable that contains your module adResponse.
+         */
+
+        /* This an array of all the bids in your response that will be iterated over below. Each of
+         * these will be mapped back to a returnParcel object using some criteria explained below.
+         * The following variables will also be parsed and attached to that returnParcel object as
+         * returned demand.
+         *
+         * Use the adResponse variable to extract your bid information and insert it into the
+         * bids array. Each element in the bids array should represent a single bid and should
+         * match up to a single element from the returnParcel array.
+         *
+         */
+
+        /* ---------- Process adResponse and extract the bids into the bids array ------------ */
+
+        var bids = adResponse;
 
         /* --------------------------------------------------------------------------------- */
 
@@ -134,7 +289,7 @@ function DistrictmDmxHtb(config) {
                  */
 
                 /* ----------- Fill this out to find a matching bid for the current parcel ------------- */
-                if (curReturnParcel.uuid === bids[i].uuid) {
+                if (curReturnParcel.xSlotRef.someCriteria === bids[i].someCriteria) {
                     curBid = bids[i];
                     bids.splice(i, 1);
 
@@ -157,31 +312,31 @@ function DistrictmDmxHtb(config) {
             /* Using the above variable, curBid, extract various information about the bid and assign it to
              * these local variables */
 
-            var bidIsPass = curBid.nobid;
-            if (!bidIsPass) {
-                curBid = curBid.ads[0];
-                var banner = curBid.rtb.banner;
+            /* The bid price for the given slot */
+            var bidPrice = curBid.price;
 
-                /* The bid price for the given slot */
-                var bidPrice = curBid.cpm;
+            /* The size of the given slot */
+            var bidSize = [Number(curBid.width), Number(curBid.height)];
 
-                /* The size of the given slot */
-                var bidSize = [Number(banner.width), Number(banner.height)];
+            /* The creative/adm for the given slot that will be rendered if is the winner.
+             * Please make sure the URL is decoded and ready to be document.written.
+             */
+            var bidCreative = curBid.adm;
 
-                /* The creative/adm for the given slot that will be rendered if is the winner.
-                 * Please make sure the URL is decoded and ready to be document.written.
-                 */
-                var bidCreative = banner.content;
+            /* The dealId if applicable for this slot. */
+            var bidDealId = curBid.dealid;
 
-                /* The dealId if applicable for this slot. */
-                var bidDealId = typeof curBid.deal_id !== 'undefined' ? curBid.deal_id : null;
+            /* Explicitly pass */
+            var bidIsPass = bidPrice <= 0;
 
-                /* OPTIONAL: tracking pixel url to be fired AFTER rendering a winning creative.
-                 * If firing a tracking pixel is not required or the pixel url is part of the adm,
-                 * leave empty;
-                 */
-                var pixelUrl = curBid.rtb.trackers[0].impression_urls[0] || '';
-            }
+            /* OPTIONAL: tracking pixel url to be fired AFTER rendering a winning creative.
+            * If firing a tracking pixel is not required or the pixel url is part of the adm,
+            * leave empty;
+            */
+            var pixelUrl = '';
+
+            /* --------------------------------------------------------------------------------------- */
+
             curBid = null;
             if (bidIsPass) {
                 //? if (DEBUG) {
@@ -202,13 +357,14 @@ function DistrictmDmxHtb(config) {
             curReturnParcel.size = bidSize;
             curReturnParcel.targetingType = 'slot';
             curReturnParcel.targeting = {};
+
             var targetingCpm = '';
 
             //? if (FEATURES.GPT_LINE_ITEMS) {
-            var sizeKey = Size.arrayToString(curReturnParcel.size);
             targetingCpm = __baseClass._bidTransformers.targeting.apply(bidPrice);
+            var sizeKey = Size.arrayToString(curReturnParcel.size);
 
-            if (bidDealId !== null) {
+            if (bidDealId) {
                 curReturnParcel.targeting[__baseClass._configs.targetingKeys.pmid] = [sizeKey + '_' + bidDealId];
                 curReturnParcel.targeting[__baseClass._configs.targetingKeys.pm] = [sizeKey + '_' + targetingCpm];
             } else {
@@ -228,15 +384,20 @@ function DistrictmDmxHtb(config) {
             curReturnParcel.price = Number(__baseClass._bidTransformers.price.apply(bidPrice));
             //? }
 
+            var expiry = 0;
+            if (__profile.features.demandExpiry.enabled) {
+                expiry = __profile.features.demandExpiry.value + System.now();
+            }
+
             var pubKitAdId = RenderService.registerAd({
                 sessionId: sessionId,
                 partnerId: __profile.partnerId,
                 adm: bidCreative,
                 requestId: curReturnParcel.requestId,
                 size: curReturnParcel.size,
-                price: targetingCpm ? targetingCpm : undefined,
-                dealId: bidDealId ? bidDealId : undefined,
-                timeOfExpiry: __profile.features.demandExpiry.enabled ? __profile.features.demandExpiry.value + System.now() : 0,
+                price: targetingCpm,
+                dealId: bidDealId || null,
+                timeOfExpiry: expiry,
                 auxFn: __renderPixel,
                 auxArgs: [pixelUrl]
             });
@@ -247,20 +408,13 @@ function DistrictmDmxHtb(config) {
         }
     }
 
-    function adResponseCallback(adResponse) {
-        /* Get callbackId from adResponse here */
-        var callbackId = 0;
-        __baseClass._adResponseStore[callbackId] = adResponse;
-    }
-
     /* =====================================
-    * Constructors
-    * ---------------------------------- */
+     * Constructors
+     * ---------------------------------- */
 
     (function __constructor() {
-        EventsService = SpaceCamp.services.EventsService;
-        RenderService = SpaceCamp.services.RenderService;
         ComplianceService = SpaceCamp.services.ComplianceService;
+        RenderService = SpaceCamp.services.RenderService;
 
         /* =============================================================================
          * STEP 1  | Partner Configuration
@@ -273,37 +427,43 @@ function DistrictmDmxHtb(config) {
         __profile = {
             partnerId: 'DistrictmDmxHtb',
             namespace: 'DistrictmDmxHtb',
-            statsId: 'DMX',
-            version: '2.5',
+            statsId: 'DIS',
+            version: '2.0.0',
             targetingType: 'slot',
             enabledAnalytics: {
                 requestTime: true
             },
             features: {
                 demandExpiry: {
-                    enabled: true,
-                    value: 300
+                    enabled: false,
+                    value: 0
                 },
                 rateLimiting: {
                     enabled: false,
                     value: 0
                 }
             },
-            bidUnitInCents: 100,
+
+            /* Targeting keys for demand, should follow format ix_{statsId}_id */
             targetingKeys: {
-                id: 'ix_dmx_id',
-                om: 'ix_dmx_cpm',
-                pm: 'ix_dmx_cpm',
-                pmid: 'ix_dmx_dealid'
+                id: 'ix_dis_id',
+                om: 'ix_dis_cpm',
+                pm: 'ix_dis_cpm',
+                pmid: 'ix_dis_dealid'
             },
+
+            /* The bid price unit (in cents) the endpoint returns, please refer to the readme for details */
+            bidUnitInCents: 1,
             lineItemType: Constants.LineItemTypes.ID_AND_SIZE,
-            callbackType: Partner.CallbackTypes.NONE,
-            architecture: Partner.Architectures.FSRA,
+            callbackType: Partner.CallbackTypes.ID,
+            architecture: Partner.Architectures.SRA,
             requestType: Partner.RequestTypes.ANY
         };
 
+        /* --------------------------------------------------------------------------------------- */
+
         //? if (DEBUG) {
-        var results = ConfigValidators.partnerBaseConfig(configs) || PartnerValidation(configs);
+        var results = ConfigValidators.partnerBaseConfig(configs) || PartnerSpecificValidator(configs);
 
         if (results) {
             throw Whoopsie('INVALID_CONFIG', results);
@@ -318,8 +478,8 @@ function DistrictmDmxHtb(config) {
     })();
 
     /* =====================================
-    * Public Interface
-    * ---------------------------------- */
+     * Public Interface
+     * ---------------------------------- */
 
     var derivedClass = {
         /* Class Information

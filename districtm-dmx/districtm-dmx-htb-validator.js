@@ -1,32 +1,26 @@
-/**
- * @author:             Districtm
- * @license:            UNLICENSED
- * @technical-contact:  Steve Alliance <steve@districtm.net>
- * @business-contact:   Kate Dye <kate@districtm.net>
- */
-
-/**
- * This file contains the necessary validation for the partner configuration.
- * This validation will be performed on the partner specific configuration object
- * that is passed into the wrapper. The wrapper uses an outside library called
- * schema-insepctor to perform the validation. Information about it can be found here:
- * https://atinux.fr/schema-inspector/.
- */
-
 'use strict';
 
 ////////////////////////////////////////////////////////////////////////////////
 // Dependencies ////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-var SchemaInspector = require('../../../libs/external/schema-inspector.js');
+var Inspector = require('../../../libs/external/schema-inspector.js');
 
 ////////////////////////////////////////////////////////////////////////////////
 // Main ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+/* =============================================================================
+ * STEP 0 | Config Validation
+ * -----------------------------------------------------------------------------
+ * This file contains the necessary validation for the partner configuration.
+ * This validation will be performed on the partner specific configuration object
+ * that is passed into the wrapper. The wrapper uses an outside library called
+ * schema-insepctor to perform the validation. Information about it can be found here:
+ * https://atinux.fr/schema-inspector/.
+ */
 function partnerValidator(configs) {
-    var result = SchemaInspector.validate({
+    var result = Inspector.validate({
         type: 'object',
         properties: {
             xSlots: {
@@ -36,21 +30,12 @@ function partnerValidator(configs) {
                         type: 'object',
                         properties: {
                             dmxid: {
-                                type: 'number'
+                                type: 'number',
+                                minLength: 1
                             },
                             memberid: {
-                                type: 'number'
-                            },
-                            sizes: {
-                                type: 'array',
-                                minLength: 1,
-                                items: {
-                                    type: 'array',
-                                    exactLength: 2,
-                                    items: {
-                                        type: 'number'
-                                    }
-                                }
+                                type: 'number',
+                                minLength: 1
                             }
                         }
                     }
@@ -64,6 +49,6 @@ function partnerValidator(configs) {
     }
 
     return null;
-};
+}
 
 module.exports = partnerValidator;
