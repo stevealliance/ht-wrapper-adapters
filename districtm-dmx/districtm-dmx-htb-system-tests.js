@@ -5,13 +5,13 @@ function getPartnerId() {
 }
 
 function getStatsId() {
-    return 'PXYZ';
+    return 'DIS';
 }
 
 function getBidRequestRegex() {
     return {
         method: 'POST',
-        urlRegex: /.*ads\.playground\.xyz\/host-config\/prebid.*/
+        urlRegex: /.*dmx\.districtm\.io\/b\/v1.*/
     };
 }
 
@@ -27,11 +27,13 @@ function getConfig() {
     return {
         xSlots: {
             1: {
-                placementId: 123,
+                dmxid: '123',
+                memberid: '123',
                 sizes: [[300, 250]]
             },
             2: {
-                placementId: 123,
+                dmxid: '123',
+                memberid: '123',
                 sizes: [[320, 50]]
             }
         }
@@ -40,18 +42,18 @@ function getConfig() {
 
 function validateBidRequest(request) {
     var r = JSON.parse(request.body);
-
     expect(r.id).toBeDefined();
-
-    expect(r.site.page).toBeDefined();
-    expect(r.site.name).toBeDefined();
-    expect(r.site.domain).toBeDefined();
+    expect(r.site).toBeDefined();
+    expect(r.site.publisher).toBeDefined();
 
     expect(r.imp.length).toBe(2);
 
     expect(r.imp[0]).toEqual({
-        id: 'htSlotDesktopAId',
+        id: jasmine.stringMatching(/.*/),
+        tagid: '123',
+        secure: 0,
         banner: {
+            topframe: 1,
             w: 300,
             h: 250,
             format: [
@@ -60,17 +62,15 @@ function validateBidRequest(request) {
                     h: 250
                 }
             ]
-        },
-        ext: {
-            appnexus: {
-                placement_id: 123
-            }
         }
     });
 
     expect(r.imp[1]).toEqual({
-        id: 'htSlotDesktopAId',
+        id: jasmine.stringMatching(/.*/),
+        tagid: '123',
+        secure: 0,
         banner: {
+            topframe: 1,
             w: 320,
             h: 50,
             format: [
@@ -79,11 +79,6 @@ function validateBidRequest(request) {
                     h: 50
                 }
             ]
-        },
-        ext: {
-            appnexus: {
-                placement_id: 123
-            }
         }
     });
 }
@@ -98,49 +93,30 @@ function getValidResponse(request, creative) {
             {
                 bid: [
                     {
-                        adid: '1487603',
                         adm: adm,
-                        adomain: ['www.playground.xyz'],
-                        iurl: 'https://sin1-ib.adnxs.com/cr?id=108227427',
+                        adomain: ['www.districtm.ca'],
                         cid: '7290',
                         crid: '108227427',
                         h: 250,
                         w: 300,
-                        ext: {
-                            appnexus: {
-                                brand_id: 1,
-                                auction_id: 7012796633677917000,
-                                bidder_id: 2,
-                                bid_ad_type: 0
-                            }
-                        },
                         id: 567841330,
-                        impid: 'htSlotDesktopAId',
-                        price: '2'
+                        impid: r.imp[0].id,
+                        price: 2.00
                     },
                     {
                         adid: '1487603',
                         adm: adm,
-                        adomain: ['www.playground.xyz'],
+                        adomain: ['www.districtm.io'],
                         iurl: 'https://sin1-ib.adnxs.com/cr?id=108227427',
                         cid: '7290',
                         crid: '108227427',
                         h: 50,
                         w: 320,
-                        ext: {
-                            appnexus: {
-                                brand_id: 1,
-                                auction_id: 7012796633677917000,
-                                bidder_id: 2,
-                                bid_ad_type: 0
-                            }
-                        },
                         id: 567841330,
-                        impid: 'htSlotDesktopAId',
-                        price: '1'
+                        impid: r.imp[1].id,
+                        price: 1.00
                     }
-                ],
-                seat: '2439'
+                ]
             }
         ]
     };
@@ -160,27 +136,28 @@ function getPassResponse(request) {
                     {
                         adid: '1487603',
                         adm: adm,
-                        adomain: ['www.playground.xyz'],
-                        iurl: 'https://sin1-ib.adnxs.com/cr?id=108227427',
+                        adomain: ['www.districtm.ca'],
                         cid: '7290',
                         crid: '108227427',
                         h: 250,
                         w: 300,
-                        ext: {
-                            appnexus: {
-                                brand_id: 1,
-                                auction_id: 7012796633677917000,
-                                bidder_id: 2,
-                                bid_ad_type: 0,
-                                prebid_server_bid: false
-                            }
-                        },
                         id: 567841330,
-                        impid: 'htSlotDesktopAId',
+                        impid: r.imp[0].id,
+                        price: 0
+                    },
+                    {
+                        adid: '1487603',
+                        adm: adm,
+                        adomain: ['www.districtm.ca'],
+                        cid: '7290',
+                        crid: '108227427',
+                        h: 250,
+                        w: 300,
+                        id: 567841330,
+                        impid: r.imp[1].id,
                         price: 0
                     }
-                ],
-                seat: '2439'
+                ]
             }
         ]
     };
@@ -189,14 +166,15 @@ function getPassResponse(request) {
 }
 
 function validateTargeting(targetingMap) {
+    var targeting = targetingMap;
     expect(targetingMap).toEqual(jasmine.objectContaining({
-        ix_pxyz_cpm: jasmine.arrayContaining(['300x250_200', '320x50_100']),
-        ix_pxyz_id: jasmine.arrayContaining([jasmine.any(String)])
+        ix_dis_cpm: jasmine.arrayContaining(['300x250_200', '320x50_100']),
+        ix_dis_id: jasmine.arrayContaining([jasmine.any(String)])
     }));
 }
 
 function validatePixelRequests(pixelRequests) {
-    expect(pixelRequests[0].toString()).toMatch(/.*ib\.adnxs\.com\/getuidnb.*/);
+    expect(pixelRequests[0].toString()).toMatch(/.*cdn\.districtm\.io\/ids.*/);
 }
 
 module.exports = {

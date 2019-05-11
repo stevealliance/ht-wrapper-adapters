@@ -78,6 +78,10 @@ function DistrictmDmxHtb(configs) {
      * @return {object}
      */
     function __generateRequestObj(returnParcels) {
+        //? if (DEBUG) {
+        Scribe.info('__generateRequestObj', returnParcels);
+        console.log(returnParcels)
+        //? }
         /* =============================================================================
          * STEP 2  | Generate Request URL
          * -----------------------------------------------------------------------------
@@ -140,15 +144,39 @@ function DistrictmDmxHtb(configs) {
             cur: ['USD'],
             site: {
                 publisher: {
-                    id: String(returnParcels[0])
+                    id: String(returnParcels[0].xSlotRef.memberid)
                 }
-            }
+            },
+            tmax: 500,
+            id: System.generateUniqueId()
         };
-        console.log(returnParcels)
-        var callbackId = System.generateUniqueId();
+        var callbackId = queryObj.id;
 
         /* Change this to your bidder endpoint. */
-        var baseUrl = Browser.getProtocol() + __endpoint;
+        var baseUrl = __endpoint;
+
+        var tags = returnParcels.map(function (tag) {
+            var obj = {};
+            obj.id = System.generateUniqueId();
+            obj.tagid = String(tag.xSlotRef.dmxid);
+            tag.xSlotRef.id = obj.id;
+            obj.secure = window.location.protocol === 'https' ? 1 : 0;
+            obj.banner = {
+                topframe: 1,
+                w: tag.xSlotRef.sizes[0][0],
+                h: tag.xSlotRef.sizes[0][1],
+                format: tag.xSlotRef.sizes.map(function (size) {
+                    return {
+                        w: size[0],
+                        h: size[1]
+                    };
+                })
+            };
+
+            return obj;
+        });
+
+        queryObj.imp = tags;
 
         /* ------------------------ Get consent information -------------------------
          * If you want to implement GDPR consent in your adapter, use the function
@@ -174,19 +202,22 @@ function DistrictmDmxHtb(configs) {
          * returned from gdpr.getConsent() are safe defaults and no attempt has been
          * made by the wrapper to contact a Consent Management Platform.
          */
-        var gdprStatus = ComplianceService.gdpr.getConsent();
-        var privacyEnabled = ComplianceService.isPrivacyEnabled();
+        // Bvar gdprStatus = ComplianceService.gdpr.getConsent();
+        // Bvar privacyEnabled = ComplianceService.isPrivacyEnabled();
 
         /* ---------------- Craft bid request using the above returnParcels --------- */
 
         /* ------- Put GDPR consent code here if you are implementing GDPR ---------- */
 
         /* -------------------------------------------------------------------------- */
-
         return {
             url: baseUrl,
-            data: queryObj,
-            callbackId: callbackId
+            data: JSON.stringify(queryObj),
+            callbackId: callbackId,
+            networkParamOverrides: {
+                method: 'POST',
+                contentType: 'text/plain'
+            }
         };
     }
 
@@ -201,9 +232,14 @@ function DistrictmDmxHtb(configs) {
      * If the endpoint does not have an appropriate field for this, set the profile's
      * callback type to CallbackTypes.CALLBACK_NAME and omit this function.
      */
+    // Function adResponseCallback(adResponse) {
+    //     /* Get callbackId from adResponse here */
+    //     Var callbackId = 0;
+    //     __baseClass._adResponseStore[callbackId] = adResponse;
+    // }
     function adResponseCallback(adResponse) {
         /* Get callbackId from adResponse here */
-        var callbackId = 0;
+        var callbackId = adResponse.requestId;
         __baseClass._adResponseStore[callbackId] = adResponse;
     }
 
@@ -225,7 +261,7 @@ function DistrictmDmxHtb(configs) {
     function __renderPixel(pixelUrl) {
         if (pixelUrl) {
             Network.img({
-                url: decodeURIComponent(pixelUrl),
+                url: decodeURIComponent('https://cdn.districtm.io/ids'),
                 method: 'GET'
             });
         }
@@ -245,6 +281,8 @@ function DistrictmDmxHtb(configs) {
      * attached to each one of the objects for which the demand was originally requested for.
      */
     function __parseResponse(sessionId, adResponse, returnParcels) {
+        console.log(adResponse, returnParcels)
+        // Scribe.info('my data', adResponse, returnParcels);
         /* =============================================================================
          * STEP 4  | Parse & store demand response
          * -----------------------------------------------------------------------------
@@ -266,7 +304,7 @@ function DistrictmDmxHtb(configs) {
 
         /* ---------- Process adResponse and extract the bids into the bids array ------------ */
 
-        var bids = adResponse;
+        var bids = adResponse.seatbid[0].bid;
 
         /* --------------------------------------------------------------------------------- */
 
@@ -289,7 +327,7 @@ function DistrictmDmxHtb(configs) {
                  */
 
                 /* ----------- Fill this out to find a matching bid for the current parcel ------------- */
-                if (curReturnParcel.xSlotRef.someCriteria === bids[i].someCriteria) {
+                if (curReturnParcel.xSlotRef.id === bids[i].impid) {
                     curBid = bids[i];
                     bids.splice(i, 1);
 
@@ -316,7 +354,7 @@ function DistrictmDmxHtb(configs) {
             var bidPrice = curBid.price;
 
             /* The size of the given slot */
-            var bidSize = [Number(curBid.width), Number(curBid.height)];
+            var bidSize = [Number(curBid.w), Number(curBid.h)];
 
             /* The creative/adm for the given slot that will be rendered if is the winner.
              * Please make sure the URL is decoded and ready to be document.written.
@@ -453,11 +491,11 @@ function DistrictmDmxHtb(configs) {
             },
 
             /* The bid price unit (in cents) the endpoint returns, please refer to the readme for details */
-            bidUnitInCents: 1,
+            bidUnitInCents: 100,
             lineItemType: Constants.LineItemTypes.ID_AND_SIZE,
-            callbackType: Partner.CallbackTypes.ID,
+            callbackType: Partner.CallbackTypes.NONE,
             architecture: Partner.Architectures.SRA,
-            requestType: Partner.RequestTypes.ANY
+            requestType: Partner.RequestTypes.AJAX
         };
 
         /* --------------------------------------------------------------------------------------- */

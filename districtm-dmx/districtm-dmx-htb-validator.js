@@ -30,12 +30,20 @@ function partnerValidator(configs) {
                         type: 'object',
                         properties: {
                             dmxid: {
-                                type: 'number',
-                                minLength: 1
+                                type: 'string'
                             },
                             memberid: {
-                                type: 'number',
-                                minLength: 1
+                                type: 'string'
+                            },
+                            sizes: {
+                                type: 'array',
+                                items: {
+                                    type: 'array',
+                                    exactLength: 2,
+                                    items: {
+                                        type: 'integer'
+                                    }
+                                }
                             }
                         }
                     }
