@@ -78,10 +78,6 @@ function DistrictmDmxHtb(configs) {
      * @return {object}
      */
     function __generateRequestObj(returnParcels) {
-        //? if (DEBUG) {
-        Scribe.info('__generateRequestObj', returnParcels);
-        console.log(returnParcels)
-        //? }
         /* =============================================================================
          * STEP 2  | Generate Request URL
          * -----------------------------------------------------------------------------
@@ -281,8 +277,6 @@ function DistrictmDmxHtb(configs) {
      * attached to each one of the objects for which the demand was originally requested for.
      */
     function __parseResponse(sessionId, adResponse, returnParcels) {
-        console.log(adResponse, returnParcels)
-        // Scribe.info('my data', adResponse, returnParcels);
         /* =============================================================================
          * STEP 4  | Parse & store demand response
          * -----------------------------------------------------------------------------
